@@ -1,6 +1,8 @@
+flask
 ultralytics
 transformers
 faiss-cpu
 torch
 torchvision
 pillow
+numpy
