@@ -9,7 +9,7 @@ from transformers import AutoImageProcessor, AutoModel
 import argparse
 import sys
 
-YOLO_WEIGHTS = "/Users/helenamajer/Git-Repos/Instance_Recognition_App/Instance-Recognition/runs/segment/models/yolov8_parts_singleclass/weights/best.pt"
+YOLO_WEIGHTS = "../Instance_Recognition_App/Instance-Recognition/runs/segment/models/yolov8_parts_singleclass/weights/best.pt"
 INDEX_PATH   = "embeddings/index.faiss"
 META_PATH    = "embeddings/metadata.json"
 
