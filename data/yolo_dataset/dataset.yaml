@@ -1,0 +1,6 @@
+names:
+- part
+nc: 1
+path: /Users/helenamajer/Git-Repos/Instance_Recognition_App/Instance-Recognition/data/yolo_dataset
+train: images/train
+val: images/val
