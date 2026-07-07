@@ -1,0 +1,16 @@
+[project]
+name = "pipeline"
+version = "1.0.0"
+dependencies = [
+    "blender-python-stubs",
+    "bpy",
+    "dinov2",
+    "dotenv",
+    "faiss-cpu",
+    "opencv-python",
+    "pip-system-certs",
+    "torch",
+    "torchvision",
+    "transformers",
+    "ultralytics"
+]

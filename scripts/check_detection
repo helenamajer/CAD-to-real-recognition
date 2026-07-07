@@ -1,7 +1,0 @@
-from ultralytics import YOLO
-
-model = YOLO("../Instance-Recognition/runs/segment/models/yolov8_parts_singleclass/weights/best.pt")
-results = model("test_photos/photo_1.jpg", conf=0.1)
-results[0].save("test_photos/result_check.jpg")
-print("Detections:", len(results[0].boxes))
-print("Confidence scores:", results[0].boxes.conf)

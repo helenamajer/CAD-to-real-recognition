@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Part Scanner</title>
+  <style>
+    /* Reset + Base */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:       #003DA5;
+      --blue-light: #E8EFFE;
+      --blue-mid:   #1A56C4;
+      --text:       #111827;
+      --text-muted: #6B7280;
+      --border:     #E5E7EB;
+      --bg:         #F9FAFB;
+      --white:      #FFFFFF;
+      --green:      #059669;
+      --red:        #DC2626;
+      --radius:     16px;
+      --radius-sm:  10px;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Screen system */
+    .screen {
+      display: none;
+      flex-direction: column;
+      min-height: 100svh;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right)
+               env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    .screen.active { display: flex; }
+
+    /* Home screen */
+    #screen-home {
+      padding: 48px 28px 40px;
+      justify-content: space-between;
+    }
+
+    .home-top { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+    .brand-mark {
+      width: 64px; height: 64px;
+      background: var(--blue);
+      border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 28px;
+    }
+    .brand-mark svg { width: 32px; height: 32px; }
+
+    .home-title {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    .home-subtitle {
+      font-size: 16px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .home-actions { display: flex; flex-direction: column; gap: 12px; }
+
+    /* Buttons */
+    .btn {
+      width: 100%;
+      height: 56px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: opacity 0.15s, transform 0.1s;
+      letter-spacing: 0.1px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { opacity: 0.85; transform: scale(0.98); }
+
+    .btn-primary { background: var(--blue); color: var(--white); }
+    .btn-outline {
+      background: transparent;
+      color: var(--blue);
+      border: 1.5px solid var(--blue);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1.5px solid var(--border);
+    }
+    .btn:disabled { opacity: 0.5; pointer-events: none; }
+
+    /* Confirm screen */
+    #screen-confirm { background: #000; }
+
+    .preview-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #preview-img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .preview-gradient {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 200px;
+      background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+      pointer-events: none;
+    }
+
+    .confirm-actions {
+      padding: 24px 24px 40px;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .confirm-label {
+      color: rgba(255,255,255,0.6);
+      font-size: 13px;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    /* Loading overlay */
+    #loading-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+    #loading-overlay.active { display: flex; }
+
+    .spinner {
+      width: 48px; height: 48px;
+      border: 3px solid rgba(255,255,255,0.2);
+      border-top-color: var(--white);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text {
+      color: var(--white);
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    /* Result screen */
+    #screen-result { background: var(--white); }
+
+    .result-image-container {
+      flex: 0 0 50vh;
+      background: #f0f0f0;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #result-render-img {
+      width: 100%; height: 100%;
+      object-fit: contain;
+      display: block;
+      padding: 24px;
+    }
+
+    .result-body {
+      flex: 1;
+      padding: 28px 24px 40px;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .result-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+    }
+    .status-dot.red { background: var(--red); }
+
+    .status-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      letter-spacing: 0.3px;
+    }
+    .status-label.red { color: var(--red); }
+
+    .result-field { margin-bottom: 20px; }
+
+    .field-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 4px;
+    }
+
+    .field-value {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.3px;
+      line-height: 1.1;
+    }
+
+    .part-number-badge {
+      display: inline-flex;
+      align-items: center;
+      background: var(--blue-light);
+      color: var(--blue);
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      font-family: "SF Mono", "Consolas", monospace;
+    }
+
+    .no-detection-box {
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .no-detection-icon {
+      font-size: 36px;
+      margin-bottom: 8px;
+    }
+
+    .no-detection-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--red);
+      margin-bottom: 4px;
+    }
+
+    .no-detection-subtitle {
+      font-size: 14px;
+      color: #9CA3AF;
+      line-height: 1.4;
+    }
+
+    .result-actions {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-top: 20px;
+    }
+
+    /* Hidden file input */
+    #camera-input { display: none; }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 8px 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Identifying part...</div>
+</div>
+
+<!-- Hidden camera input -->
+<input type="file" id="camera-input" accept="image/*" capture="environment">
+
+<!-- SCREEN 1 — Home -->
+<div id="screen-home" class="screen active">
+  <div class="home-top">
+
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+        <line x1="12" y1="22.08" x2="12" y2="12"/>
+      </svg>
+    </div>
+
+    <div class="home-title">Part<br>Scanner</div>
+    <div class="home-subtitle">
+      Identify manufacturing components instantly using your camera.
+    </div>
+
+  </div>
+
+  <div class="home-actions">
+    <button class="btn btn-primary" onclick="openCamera()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round"
+           stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+      Scan a Part
+    </button>
+  </div>
+</div>
+
+<!-- SCREEN 2 — Confirm photo -->
+<div id="screen-confirm" class="screen">
+
+  <div class="preview-container">
+    <img id="preview-img" src="" alt="Captured photo">
+    <div class="preview-gradient"></div>
+  </div>
+
+  <div class="confirm-actions">
+    <div class="confirm-label">Does the part appear clearly?</div>
+    <button class="btn btn-primary" onclick="identifyPart()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round"
+           stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      Identify Part
+    </button>
+    <button class="btn btn-ghost" style="color:rgba(255,255,255,0.7);
+            border-color:rgba(255,255,255,0.2);" onclick="openCamera()">
+      Retake Photo
+    </button>
+  </div>
+
+</div>
+
+<!-- SCREEN 3 — Result -->
+<div id="screen-result" class="screen">
+
+  <!-- render image shown only on successful detection -->
+  <div class="result-image-container" id="render-container">
+    <img id="result-render-img" src="" alt="Matched render">
+  </div>
+
+  <div class="result-body">
+
+    <!-- success state -->
+    <div id="result-success" style="display:none; flex-direction:column; flex:1;">
+      <div class="result-status">
+        <div class="status-dot"></div>
+        <div class="status-label">Part Identified</div>
+      </div>
+
+      <div class="result-field">
+        <div class="field-label">Part Name</div>
+        <div class="field-value" id="result-name">—</div>
+      </div>
+
+      <div class="result-field">
+        <div class="field-label">Part Number</div>
+        <div class="part-number-badge" id="result-number">—</div>
+      </div>
+
+      <div class="result-actions">
+        <button class="btn btn-primary" onclick="openCamera()">
+          Scan Another Part
+        </button>
+        <button class="btn btn-outline" onclick="showScreen('home')">
+          Back to Home
+        </button>
+      </div>
+    </div>
+
+    <!-- no detection state -->
+    <div id="result-nodetection" style="display:none; flex-direction:column; flex:1;">
+      <div class="no-detection-box">
+        <div class="no-detection-icon"> X </div>
+        <div class="no-detection-title">No Part Detected</div>
+        <div class="no-detection-subtitle">
+          Make sure the object is clearly visible and well-lit, then try again.
+        </div>
+      </div>
+
+      <div class="result-actions">
+        <button class="btn btn-primary" onclick="openCamera()">
+          Try Again
+        </button>
+        <button class="btn btn-outline" onclick="showScreen('home')">
+          Back to Home
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // State
+  let capturedFile = null;
+
+  // Screen management
+  function showScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  // Camera - for future implementation
+  function openCamera() {
+    document.getElementById('camera-input').click();
+  }
+
+  document.getElementById('camera-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    capturedFile = file;
+
+    // show preview on confirm screen
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      document.getElementById('preview-img').src = ev.target.result;
+      showScreen('confirm');
+    };
+    reader.readAsDataURL(file);
+
+    // reset input so the same photo can be retaken
+    this.value = '';
+  });
+
+  // Identify
+  async function identifyPart() {
+    if (!capturedFile) return;
+
+    // show loading
+    document.getElementById('loading-overlay').classList.add('active');
+
+    try {
+      const formData = new FormData();
+      formData.append('image', capturedFile);
+
+      const response = await fetch('/identify', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      // hide loading
+      document.getElementById('loading-overlay').classList.remove('active');
+
+      if (data.detected) {
+        showResult(data);
+      } else {
+        showNoDetection();
+      }
+
+    } catch (err) {
+      document.getElementById('loading-overlay').classList.remove('active');
+      showNoDetection();
+    }
+  }
+
+  // Show result
+  function showResult(data) {
+    // populate fields
+    document.getElementById('result-name').textContent   = data.part_name;
+    document.getElementById('result-number').textContent = data.part_number;
+
+    // load matched render image via /render endpoint
+    const renderImg = document.getElementById('result-render-img');
+    renderImg.src = '/render?path=' + encodeURIComponent(data.render_path);
+
+    // show render container
+    document.getElementById('render-container').style.display = 'block';
+
+    // show success, hide no-detection
+    document.getElementById('result-success').style.display     = 'flex';
+    document.getElementById('result-nodetection').style.display = 'none';
+
+    showScreen('result');
+  }
+
+  // Show no detection
+  function showNoDetection() {
+    // hide render container
+    document.getElementById('render-container').style.display = 'none';
+
+    // show no-detection, hide success
+    document.getElementById('result-success').style.display     = 'none';
+    document.getElementById('result-nodetection').style.display = 'flex';
+
+    showScreen('result');
+  }
+</script>
+
+</body>
+</html>
