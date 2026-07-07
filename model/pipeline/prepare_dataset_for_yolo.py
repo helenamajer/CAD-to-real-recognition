@@ -1,8 +1,8 @@
-"""Prepare the data set for training YOLOv8.
+"""Prepare the dataset for training YOLOv8.
 - split dataset into training/validation batch using 80/20 ratio.
 - paste the component renders onto background images.
 - change class ID for all component classes to 0 so all components belong to one class.
-- genereate a .yaml file for paths, class, and name.
+- generate a .yaml file for paths, class, and name.
 """
 
 import os
